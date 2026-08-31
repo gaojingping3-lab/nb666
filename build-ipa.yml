@@ -1,0 +1,24 @@
+name: Build IPA
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          ZIP_FILE=$(find . -name "*.zip" -not -path "./.git/*" | head -1)
+          if [ -n "$ZIP_FILE" ]; then unzip -o "$ZIP_FILE"; fi
+          XCODEPROJ=$(find . -name "*.xcodeproj" -not -path "./.git/*" | head -1)
+          if [ -z "$XCODEPROJ" ]; then echo "NO XCODEPROJ"; exit 1; fi
+          SCHEME=$(basename "$XCODEPROJ" .xcodeproj)
+          xcodebuild clean archive -project "$XCODEPROJ" -scheme "$SCHEME" -configuration Release -archivePath build/App.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          mkdir -p Payload
+          APP_PATH=$(find build/App.xcarchive/Products/Applications -name "*.app" | head -1)
+          cp -r "$APP_PATH" Payload/
+          zip -r App.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IPA
+          path: App.ipa
