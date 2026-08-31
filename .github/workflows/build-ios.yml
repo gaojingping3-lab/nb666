@@ -1,0 +1,20 @@
+name: Build CandyAdventure IPA
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          xcodebuild clean archive -project 糖果冒险/CandyAdventure.xcodeproj -scheme CandyAdventure -configuration Release -archivePath build/CandyAdventure.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      - name: Make IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/CandyAdventure.xcarchive/Products/Applications/CandyAdventure.app Payload/
+          zip -r CandyAdventure.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OutputIPA
+          path: CandyAdventure.ipa
