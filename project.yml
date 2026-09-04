@@ -62,13 +62,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.gaojingping.voicereader
         PRODUCT_NAME: AI声音朗读器
         INFOPLIST_FILE: ios/App/Info.plist
-    dependencies:
-      - package: GCDWebServer
-
-packages:
-  GCDWebServer:
-    url: https://github.com/swisspol/GCDWebServer.git
-    from: 3.5.5
 
 scheme:
   AI声音朗读器:

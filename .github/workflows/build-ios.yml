@@ -48,13 +48,6 @@ jobs:
           echo "=== 修改后 objectVersion ==="
           grep "objectVersion" "AI声音朗读器.xcodeproj/project.pbxproj"
 
-      - name: 解析 Swift Package 依赖
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project "AI声音朗读器.xcodeproj" \
-            -scheme "AI声音朗读器"
-        timeout-minutes: 15
-
       - name: 构建 Release (arm64, 无签名)
         run: |
           xcodebuild \
