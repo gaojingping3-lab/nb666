@@ -39,6 +39,14 @@ jobs:
         run: |
           xcodegen generate
           ls -la *.xcodeproj
+          # 修复项目格式版本：XcodeGen 2.46 默认生成 format 77 (Xcode 16)，
+          # GitHub Actions 的 Xcode 15.4 只支持到 format 56，手动降级
+          echo "=== 修改前 objectVersion ==="
+          grep "objectVersion" "AI声音朗读器.xcodeproj/project.pbxproj"
+          sed -i '' 's/objectVersion = 77;/objectVersion = 56;/g' "AI声音朗读器.xcodeproj/project.pbxproj"
+          sed -i '' 's/objectVersion = 76;/objectVersion = 56;/g' "AI声音朗读器.xcodeproj/project.pbxproj"
+          echo "=== 修改后 objectVersion ==="
+          grep "objectVersion" "AI声音朗读器.xcodeproj/project.pbxproj"
 
       - name: 解析 Swift Package 依赖
         run: |
