@@ -225,7 +225,7 @@ class LocalHTTPServer {
 
             if let error = error {
                 print("[Proxy] 请求失败: \(error.localizedDescription)")
-                let errData = Data(error.localizedString.utf8)
+                let errData = Data(error.localizedDescription.utf8)
                 self.sendResponse(connection: connection, status: 502, headers: [
                     "Content-Type": "text/plain; charset=utf-8",
                     "Content-Length": "\(errData.count)"
