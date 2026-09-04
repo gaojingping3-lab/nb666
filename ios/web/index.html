@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AI声音朗读器">
+    <title>AI 声音朗读器</title>
+    <meta name="theme-color" content="#0f0f1a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --card: #1a1a2a;
+            --border: #2a2a40;
+            --text: #e8e8f0;
+            --text2: #8888a0;
+            --accent: #7c5cbf;
+            --accent2: #9d7ce0;
+            --success: #4caf7d;
+            --error: #e05c5c;
+            --input: #22223a;
+            --input-border: #333350;
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100dvh;
+            padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 24px);
+            font-size: 15px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('bg.jpg') center center / cover no-repeat;
+            z-index: -1;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 15, 26, 0.45);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .wrap { position: relative; z-index: 1; }
+        .wrap { max-width: 520px; margin: 0 auto; }
+        header { text-align: center; padding: 20px 0 16px; }
+        header h1 { font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, #b8a0e0, #7c5cbf, #5c9ce0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        header p { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+        .card { background: rgba(26, 26, 42, 0.15); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+        .card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+        label { display: block; font-size: 0.78rem; color: var(--text2); margin-bottom: 5px; }
+        input[type="text"], input[type="password"], textarea, select {
+            width: 100%; background: var(--input); border: 1px solid var(--input-border);
+            border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; color: var(--text);
+            outline: none; transition: border-color 0.2s; font-family: inherit;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
+        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            padding: 9px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; border: none; outline: none; transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+            min-height: 38px; font-family: inherit; white-space: nowrap;
+        }
+        .btn:active { filter: brightness(0.85); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent2); }
+        .btn-secondary { background: var(--input); color: var(--text); border: 1px solid var(--input-border); }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
+        .btn-danger { background: transparent; color: var(--error); border: 1px solid rgba(224,92,92,0.3); }
+        .btn-sm { padding: 6px 10px; font-size: 0.75rem; min-height: 32px; }
+        .btn-lg { width: 100%; padding: 14px; font-size: 1rem; min-height: 48px; border-radius: 10px; }
+        .status { font-size: 0.78rem; color: var(--text2); display: flex; align-items: center; gap: 5px; margin-top: 8px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot.ok { background: var(--success); box-shadow: 0 0 6px rgba(76,175,125,0.5); }
+        .dot.off { background: #555; }
+        .alert { padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 8px; line-height: 1.5; word-break: break-word; }
+        .alert-ok { background: rgba(76,175,125,0.12); border: 1px solid rgba(76,175,125,0.3); color: #6ecf9a; }
+        .alert-err { background: rgba(224,92,92,0.12); border: 1px solid rgba(224,92,92,0.3); color: #e88a8a; }
+        .alert-warn { background: rgba(224,160,80,0.12); border: 1px solid rgba(224,160,80,0.3); color: #e8b86a; }
+        .alert-info { background: rgba(92,156,224,0.12); border: 1px solid rgba(92,156,224,0.3); color: #8ab8e8; }
+        .hidden { display: none !important; }
+        .upload { border: 2px dashed var(--input-border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: border-color 0.2s, background-color 0.2s; }
+        .upload:hover { border-color: var(--accent); background: rgba(124,92,191,0.05); }
+        .upload .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+        .upload .txt { font-size: 0.8rem; color: var(--text2); }
+        .upload input { display: none; }
+        .file-info { background: var(--input); border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 0.78rem; }
+        .file-info .name { font-weight: 500; word-break: break-all; }
+        .file-info .meta { color: var(--text2); font-size: 0.72rem; }
+        .file-info audio { width: 100%; margin-top: 8px; height: 36px; }
+        .speed-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .speed-btn { padding: 7px 12px; background: var(--input); border: 1px solid var(--input-border); border-radius: 7px; color: var(--text2); font-size: 0.78rem; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, color 0.15s; font-family: inherit; }
+        .speed-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .char-count { font-size: 0.72rem; color: var(--text2); text-align: right; margin-top: 4px; }
+        .char-count.warn { color: #e0a050; }
+        .player { background: var(--input); border-radius: 10px; padding: 12px; margin-top: 10px; }
+        .player .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .play-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .play-btn:disabled { opacity: 0.5; }
+        .progress { flex: 1; min-width: 80px; display: flex; align-items: center; gap: 8px; }
+        .progress input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+        .progress input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid #fff; }
+        .time { font-size: 0.7rem; color: var(--text2); white-space: nowrap; min-width: 70px; text-align: center; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .record-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+        .record-item:last-child { border-bottom: none; }
+        .record-item .time { color: var(--text2); font-size: 0.7rem; }
+        .record-item .txt { margin-top: 2px; word-break: break-all; color: var(--text); }
+        .record-item .actions { margin-top: 6px; display: flex; gap: 6px; }
+        .empty { text-align: center; color: var(--text2); font-size: 0.8rem; padding: 16px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 12px; background: var(--input); border-radius: 8px; padding: 3px; }
+        .tab { flex: 1; padding: 8px; text-align: center; font-size: 0.78rem; color: var(--text2); cursor: pointer; border-radius: 6px; transition: background-color 0.2s, color 0.2s; }
+        .tab.active { background: var(--accent); color: #fff; }
+        .divider { height: 1px; background: var(--border); margin: 12px 0; }
+        footer { text-align: center; font-size: 0.7rem; color: #555; padding: 16px 8px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>🎙️ AI 声音朗读器</h1>
+        <p>Fish Audio · 零样本克隆 · 文字转语音</p>
+    </header>
+
+    <div class="card">
+        <div class="card-title">⚙️ API Key</div>
+        <div class="row">
+            <input type="password" id="apiKey" placeholder="Fish Audio API Key" autocomplete="off" spellcheck="false" style="flex:1;">
+            <button class="btn btn-secondary btn-sm" id="toggleKey" type="button">👁</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <button class="btn btn-secondary btn-sm" id="testBtn" type="button">🔌 测试</button>
+            <button class="btn btn-danger btn-sm" id="clearKeyBtn" type="button">清除</button>
+        </div>
+        <div class="status" id="apiStatus"><span class="dot off"></span><span>未配置</span></div>
+        <div id="balanceDisplay" class="hidden" style="margin-top:6px;font-size:0.8rem;color:var(--text2);"></div>
+        <div id="apiAlert" class="hidden"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🎧 声音来源</div>
+        <div class="tabs" id="voiceTabs">
+            <div class="tab active" data-tab="refid">声音 ID</div>
+            <div class="tab" data-tab="zeroshot">上传参考音频</div>
+        </div>
+        <div id="tabRefid">
+            <input type="text" id="refIdInput" placeholder="输入声音 ID / reference_id" autocomplete="off" spellcheck="false">
+            <div class="row" style="margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" id="saveRefBtn" type="button">💾 保存</button>
+                <button class="btn btn-primary btn-sm" id="favBtn" type="button">⭐ 收藏声音</button>
+                <button class="btn btn-danger btn-sm" id="clearRefBtn" type="button">清除</button>
+            </div>
+            <div class="status" id="refStatus"><span class="dot off"></span><span>未配置</span></div>
+        </div>
+        <div id="tabZeroshot" class="hidden">
+            <div class="upload" id="uploadArea">
+                <span class="icon">📁</span>
+                <span class="txt">点击选择音频文件<br><small>MP3 / WAV / M4A</small></span>
+                <input type="file" id="audioFile" accept=".mp3,.wav,.m4a,.ogg,audio/mpeg,audio/wav,audio/mp4,audio/ogg">
+            </div>
+            <div id="fileInfo" class="hidden"></div>
+            <div id="refTextWrap" class="hidden" style="margin-top:10px;">
+                <label>参考音频中的文字（必填，越准效果越好）</label>
+                <textarea id="refText" placeholder="请输入参考音频里说的话……" style="min-height:60px;"></textarea>
+                <div class="row" style="margin-top:8px;gap:8px;">
+                    <button class="btn btn-primary btn-sm" id="confirmVoiceBtn" type="button">✅ 确认使用此声音</button>
+                    <button class="btn btn-secondary btn-sm" id="createVoiceIdBtn" type="button">🎙️ 创建声音ID</button>
+                </div>
+                <div id="voiceReadyStatus" class="hidden" style="margin-top:8px;"></div>
+                <div id="createVoiceStatus" class="hidden" style="margin-top:8px;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📝 朗读文本</div>
+        <textarea id="textInput" placeholder="输入需要朗读的文字……"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <div class="char-count" id="charCount" style="margin-top:0;">0 字</div>
+            <div id="costEstimate" style="font-size:0.72rem;color:var(--text2);">预计消耗：-</div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <button class="btn btn-secondary btn-sm" id="uploadTxtBtn" type="button">📄 上传 TXT</button>
+            <button class="btn btn-danger btn-sm" id="clearTextBtn" type="button">清空</button>
+            <input type="file" id="txtFile" accept=".txt,text/plain" style="display:none;">
+        </div>
+        <div class="divider"></div>
+        <label>语速</label>
+        <div class="speed-row" id="speedRow">
+            <button class="speed-btn" data-speed="0.5">0.5x</button>
+            <button class="speed-btn" data-speed="0.75">0.75x</button>
+            <button class="speed-btn active" data-speed="1.0">1.0x</button>
+            <button class="speed-btn" data-speed="1.25">1.25x</button>
+            <button class="speed-btn" data-speed="1.5">1.5x</button>
+            <button class="speed-btn" data-speed="2.0">2.0x</button>
+        </div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-secondary btn-sm" id="advToggle" type="button" style="width:100%;">⚙️ 高级设置（音质/表现力）</button>
+            <div id="advPanel" class="hidden" style="margin-top:10px;padding:12px;background:var(--input);border-radius:8px;">
+                <label style="margin-bottom:6px;">表现力（temperature，越高越有感情，越低越平稳）</label>
+                <div class="speed-row" id="tempRow" style="margin-bottom:10px;">
+                    <button class="speed-btn" data-temp="0.3">平稳</button>
+                    <button class="speed-btn active" data-temp="0.7">自然</button>
+                    <button class="speed-btn" data-temp="0.9">丰富</button>
+                </div>
+                <label style="margin-bottom:6px;">音质模式（latency）</label>
+                <div class="speed-row" id="latRow">
+                    <button class="speed-btn active" data-lat="normal">高质量</button>
+                    <button class="speed-btn" data-lat="balanced">均衡</button>
+                    <button class="speed-btn" data-lat="low">快速</button>
+                </div>
+                <label style="margin:10px 0 6px;">情绪标签（点击插入到文本开头）</label>
+                <div class="speed-row" id="emotionRow">
+                    <button class="speed-btn emotion-btn" data-emotion="[happy]">😊 开心</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[sad]">😢 悲伤</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[angry]">😠 生气</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[calm]">😌 平静</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[whispering]">🤫 耳语</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[emphasis]">💪 强调</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[excited]">🤩 兴奋</button>
+                    <button class="speed-btn emotion-btn" data-emotion="[soft]">🌸 轻柔</button>
+                </div>
+                <div style="margin-top:8px;font-size:0.72rem;color:var(--text2);line-height:1.5;">
+                    高质量：音质最好，生成稍慢；快速：生成快，音质略降。响度自动归一化已开启。情绪标签作用于当前句子。
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-lg" id="genBtn" style="margin-top:14px;" type="button">🎙️ 生成语音</button>
+        <div id="genStatus" class="hidden" style="text-align:center;padding:10px;font-size:0.85rem;color:var(--accent2);"></div>
+        <div id="genAlert" class="hidden"></div>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+        <div class="card-title">🔊 生成结果</div>
+        <div id="playerWrap"></div>
+        <div class="row" style="margin-top:10px;">
+            <button class="btn btn-secondary btn-sm" id="regenBtn" type="button">🔄 重新生成</button>
+            <button class="btn btn-primary btn-sm" id="downloadBtn" type="button">💾 保存 MP3</button>
+        </div>
+        <div id="dlNote" class="hidden"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📜 最近生成 <span style="font-size:0.72rem;color:var(--text2);font-weight:400;">（音频已保存，可播放/下载）</span></div>
+        <div id="recordsList"></div>
+        <button class="btn btn-danger btn-sm" id="clearRecordsBtn" type="button" style="margin-top:10px;">🗑 清除全部记录</button>
+    </div>
+
+    <footer>
+        API Key 仅存浏览器内存，刷新清除<br>
+        生成的音频保存在本地 IndexedDB，不上传第三方<br>
+        请仅使用本人或已授权的声音样本
+    </footer>
+</div>
+
+<!-- 收藏声音弹窗 -->
+<div id="favModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#1a1a2a;border:1px solid #2a2a40;border-radius:12px;padding:20px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-weight:600;font-size:1rem;">⭐ 收藏的声音</div>
+            <button id="favModalClose" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+        <div id="favModalList"></div>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid #2a2a40;">
+            <div id="favAddArea" class="hidden">
+                <label style="font-size:0.78rem;color:#888;margin-bottom:5px;display:block;">声音名称</label>
+                <input type="text" id="favNameInput" placeholder="给这个声音起个名字" style="margin-bottom:8px;">
+                <div class="row">
+                    <button id="favSaveBtn" class="btn btn-primary btn-sm" style="flex:1;">保存</button>
+                    <button id="favCancelBtn" class="btn btn-secondary btn-sm">取消</button>
+                </div>
+            </div>
+            <button id="favAddCurrent" class="btn btn-primary btn-sm" style="width:100%;">➕ 收藏当前输入的声音 ID</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // 环境检测：iOS App 中运行（用于下载桥接等原生能力判断）
+    const isIOSApp = /AIVoiceReaderApp\/1\.0/.test(navigator.userAgent);
+    const API_BASE = '/api/fish';
+    const TTS_URL = API_BASE + '/v1/tts';
+    const KEY_CHECK_URL = API_BASE + '/wallet/self/api-credit';
+    const MODEL = 's2.1-pro-free';
+    const MAX_CHARS = 1800;
+    const FORMAT = 'mp3';
+    const REF_ID_KEY = 'fish_tts_refid_v2';
+    const FAV_KEY = 'fish_tts_fav_voices';
+
+    let apiKey = '', refId = '', speed = 1.0, isGenerating = false;
+    let temperature = 0.7, latency = 'normal';
+    const engine = 'fish';
+    let selectedFile = null, selectedFileUrl = null, currentBlob = null, currentAudio = null, voiceReady = false;
+    let activeTab = 'refid';
+
+    const $ = id => document.getElementById(id);
+    // 音效系统（Web Audio API 生成，无需音频文件）
+    let audioCtx = null;
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+    }
+    function playTone(freq, duration, type, volume, delay) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const t = ctx.currentTime + (delay || 0);
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(volume || 0.08, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + duration);
+        } catch(e) {}
+    }
+    // 普通点击
+    function sfxClick() { playTone(700, 0.06, 'sine', 0.06); playTone(400, 0.05, 'sine', 0.04, 0.01); }
+    // 生成开始
+    function sfxStart() { playTone(400, 0.1, 'sine', 0.07); playTone(600, 0.1, 'sine', 0.06, 0.08); playTone(800, 0.12, 'sine', 0.05, 0.16); }
+    // 生成成功
+    function sfxSuccess() { playTone(523, 0.12, 'sine', 0.08); playTone(659, 0.12, 'sine', 0.07, 0.1); playTone(784, 0.18, 'sine', 0.06, 0.2); }
+    // 生成失败
+    function sfxError() { playTone(300, 0.15, 'sawtooth', 0.05); playTone(200, 0.2, 'sawtooth', 0.04, 0.12); }
+    // 保存/收藏
+    function sfxSave() { playTone(600, 0.08, 'triangle', 0.06); playTone(900, 0.1, 'triangle', 0.05, 0.06); }
+    // 切换
+    function sfxToggle() { playTone(500, 0.04, 'sine', 0.04); }
+    // 自定义生成按钮音效
+    let customGenSoundAudio = null;
+    function playCustomGenSound() {
+        try {
+            if (customGenSoundAudio) {
+                customGenSoundAudio.pause();
+                customGenSoundAudio = null;
+            }
+            customGenSoundAudio = new Audio('gen-sound.mp3');
+            customGenSoundAudio.volume = 0.7;
+            customGenSoundAudio.play().catch(err => {
+                console.log('自定义音效播放失败:', err);
+            });
+        } catch(e) { console.log('自定义音效异常:', e); }
+    }
+    function stopCustomGenSound() {
+        try {
+            if (customGenSoundAudio) {
+                customGenSoundAudio.pause();
+                customGenSoundAudio.currentTime = 0;
+            }
+        } catch(e) {}
+    }
+    // 通用自定义音效播放
+    let currentSoundAudio = null;
+    function playSound(file, volume) {
+        try {
+            if (currentSoundAudio) {
+                currentSoundAudio.pause();
+                currentSoundAudio = null;
+            }
+            currentSoundAudio = new Audio(file);
+            currentSoundAudio.volume = volume || 0.7;
+            currentSoundAudio.play().catch(() => {});
+        } catch(e) {}
+    }
+    // 全局按钮点击音效（生成按钮和情绪按钮除外，它们有自己的音效）
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('button');
+        if (btn && btn.id !== 'genBtn' && !btn.classList.contains('emotion-btn')) {
+            sfxClick();
+        }
+    });
+    const apiKeyInput = $('apiKey'), toggleKeyBtn = $('toggleKey'), testBtn = $('testBtn'), clearKeyBtn = $('clearKeyBtn');
+    const apiStatus = $('apiStatus'), apiAlert = $('apiAlert'), balanceDisplay = $('balanceDisplay');
+    const tabs = document.querySelectorAll('.tab'), tabRefid = $('tabRefid'), tabZeroshot = $('tabZeroshot');
+    const refIdInput = $('refIdInput'), saveRefBtn = $('saveRefBtn'), clearRefBtn = $('clearRefBtn'), refStatus = $('refStatus'), favBtn = $('favBtn');
+    const favModal = $('favModal'), favModalList = $('favModalList'), favModalClose = $('favModalClose'), favAddCurrent = $('favAddCurrent'), favAddArea = $('favAddArea'), favNameInput = $('favNameInput'), favSaveBtn = $('favSaveBtn'), favCancelBtn = $('favCancelBtn');
+    const uploadArea = $('uploadArea'), audioFile = $('audioFile'), fileInfo = $('fileInfo'), refTextWrap = $('refTextWrap'), refText = $('refText'), confirmVoiceBtn = $('confirmVoiceBtn'), voiceReadyStatus = $('voiceReadyStatus'), createVoiceIdBtn = $('createVoiceIdBtn'), createVoiceStatus = $('createVoiceStatus');
+    const textInput = $('textInput'), charCount = $('charCount'), costEstimate = $('costEstimate'), uploadTxtBtn = $('uploadTxtBtn'), txtFile = $('txtFile'), clearTextBtn = $('clearTextBtn');
+    const speedRow = $('speedRow'), speedBtns = speedRow.querySelectorAll('.speed-btn');
+    const advToggle = $('advToggle'), advPanel = $('advPanel');
+    const tempRow = $('tempRow'), tempBtns = tempRow.querySelectorAll('.speed-btn');
+    const latRow = $('latRow'), latBtns = latRow.querySelectorAll('.speed-btn');
+    const genBtn = $('genBtn'), genStatus = $('genStatus'), genAlert = $('genAlert');
+    const resultCard = $('resultCard'), playerWrap = $('playerWrap'), regenBtn = $('regenBtn'), downloadBtn = $('downloadBtn'), dlNote = $('dlNote');
+    const recordsList = $('recordsList'), clearRecordsBtn = $('clearRecordsBtn');
+
+    // IndexedDB
+    const DB_NAME = 'fish_tts_db', DB_STORE = 'records';
+    let db = null;
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = e => {
+                const d = e.target.result;
+                if (!d.objectStoreNames.contains(DB_STORE)) d.createObjectStore(DB_STORE, { keyPath: 'id', autoIncrement: true });
+            };
+            req.onsuccess = e => { db = e.target.result; resolve(db); };
+            req.onerror = e => reject(e.target.error);
+        });
+    }
+    function dbAdd(r) {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, 'readwrite');
+            tx.objectStore(DB_STORE).add(r);
+            tx.oncomplete = () => resolve();
+            tx.onerror = e => reject(e.target.error);
+        });
+    }
+    function dbGetAll() {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, 'readonly');
+            const req = tx.objectStore(DB_STORE).getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = e => reject(e.target.error);
+        });
+    }
+    function dbDelete(id) {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, 'readwrite');
+            tx.objectStore(DB_STORE).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = e => reject(e.target.error);
+        });
+    }
+    function dbClear() {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, 'readwrite');
+            tx.objectStore(DB_STORE).clear();
+            tx.oncomplete = () => resolve();
+            tx.onerror = e => reject(e.target.error);
+        });
+    }
+
+    function showAlert(el, msg, type) { el.className = 'alert alert-' + type; el.textContent = msg; el.classList.remove('hidden'); }
+    function hideAlert(el) { el.classList.add('hidden'); el.textContent = ''; }
+    function fmtTime(s) { if (!isFinite(s) || s < 0) return '0:00'; const m = Math.floor(s/60), sec = Math.floor(s%60); return m + ':' + (sec<10?'0':'') + sec; }
+    function nowStr() { const d = new Date(), h = d.getHours(), m = d.getMinutes(); return (h<10?'0':'')+h + ':' + (m<10?'0':'')+m; }
+    function updateCharCount() {
+        const n = textInput.value.length;
+        charCount.textContent = n + ' 字' + (n > MAX_CHARS ? '（将分段）' : '');
+        charCount.classList.toggle('warn', n > MAX_CHARS);
+        // 费用预估：S2 Pro 约每1000中文字符消耗1000 credits
+        if (n > 0) {
+            const estimatedCredits = Math.ceil(n * 1); // 约1 credit/字
+            const segments = Math.ceil(n / 1500);
+            costEstimate.textContent = '预计消耗：约 ' + estimatedCredits.toLocaleString() + ' 积分' + (segments > 1 ? '（分' + segments + '段）' : '');
+        } else {
+            costEstimate.textContent = '预计消耗：-';
+        }
+    }
+
+    // MessagePack
+    function msgpackEncode(value) {
+        const bufs = [];
+        function enc(v) {
+            if (v === null || v === undefined) bufs.push(new Uint8Array([0xc0]));
+            else if (typeof v === 'boolean') bufs.push(new Uint8Array([v ? 0xc3 : 0xc2]));
+            else if (typeof v === 'number') {
+                if (Number.isInteger(v)) {
+                    if (v >= 0 && v <= 127) bufs.push(new Uint8Array([v]));
+                    else if (v >= -32 && v < 0) bufs.push(new Uint8Array([0xe0 | (v + 32)]));
+                    else if (v >= 0 && v <= 255) bufs.push(new Uint8Array([0xcc, v]));
+                    else if (v >= -32768 && v <= 32767) { const b = new ArrayBuffer(3); new DataView(b).setUint8(0,0xcd); new DataView(b).setInt16(1,v); bufs.push(new Uint8Array(b)); }
+                    else { const b = new ArrayBuffer(5); new DataView(b).setUint8(0,0xce); new DataView(b).setUint32(1,v>>>0); bufs.push(new Uint8Array(b)); }
+                } else { const b = new ArrayBuffer(9); new DataView(b).setUint8(0,0xcb); new DataView(b).setFloat64(1,v); bufs.push(new Uint8Array(b)); }
+            }
+            else if (typeof v === 'string') {
+                const bytes = new TextEncoder().encode(v), len = bytes.length;
+                if (len <= 31) bufs.push(new Uint8Array([0xa0 | len]));
+                else if (len <= 255) bufs.push(new Uint8Array([0xd9, len]));
+                else if (len <= 65535) { const b = new ArrayBuffer(3); new DataView(b).setUint8(0,0xda); new DataView(b).setUint16(1,len); bufs.push(new Uint8Array(b)); }
+                else { const b = new ArrayBuffer(5); new DataView(b).setUint8(0,0xdb); new DataView(b).setUint32(1,len); bufs.push(new Uint8Array(b)); }
+                bufs.push(bytes);
+            }
+            else if (v instanceof Uint8Array || v instanceof ArrayBuffer) {
+                const bytes = v instanceof ArrayBuffer ? new Uint8Array(v) : v, len = bytes.length;
+                if (len <= 255) bufs.push(new Uint8Array([0xc4, len]));
+                else if (len <= 65535) { const b = new ArrayBuffer(3); new DataView(b).setUint8(0,0xc5); new DataView(b).setUint16(1,len); bufs.push(new Uint8Array(b)); }
+                else { const b = new ArrayBuffer(5); new DataView(b).setUint8(0,0xc6); new DataView(b).setUint32(1,len); bufs.push(new Uint8Array(b)); }
+                bufs.push(bytes);
+            }
+            else if (Array.isArray(v)) {
+                const len = v.length;
+                if (len <= 15) bufs.push(new Uint8Array([0x90 | len]));
+                else if (len <= 65535) { const b = new ArrayBuffer(3); new DataView(b).setUint8(0,0xdc); new DataView(b).setUint16(1,len); bufs.push(new Uint8Array(b)); }
+                else { const b = new ArrayBuffer(5); new DataView(b).setUint8(0,0xdd); new DataView(b).setUint32(1,len); bufs.push(new Uint8Array(b)); }
+                v.forEach(enc);
+            }
+            else if (typeof v === 'object') {
+                const keys = Object.keys(v), len = keys.length;
+                if (len <= 15) bufs.push(new Uint8Array([0x80 | len]));
+                else if (len <= 65535) { const b = new ArrayBuffer(3); new DataView(b).setUint8(0,0xde); new DataView(b).setUint16(1,len); bufs.push(new Uint8Array(b)); }
+                else { const b = new ArrayBuffer(5); new DataView(b).setUint8(0,0xdf); new DataView(b).setUint32(1,len); bufs.push(new Uint8Array(b)); }
+                keys.forEach(k => { enc(k); enc(v[k]); });
+            }
+        }
+        enc(value);
+        const total = bufs.reduce((s,b) => s+b.length, 0);
+        const result = new Uint8Array(total);
+        let off = 0; bufs.forEach(b => { result.set(b, off); off += b.length; });
+        return result;
+    }
+
+    // API Key
+    function updateApiStatus() { apiStatus.innerHTML = apiKey ? '<span class="dot ok"></span><span>已配置</span>' : '<span class="dot off"></span><span>未配置</span>'; }
+    apiKeyInput.oninput = () => { apiKey = apiKeyInput.value.trim(); updateApiStatus(); hideAlert(apiAlert); };
+    clearKeyBtn.onclick = () => { apiKey = ''; apiKeyInput.value = ''; updateApiStatus(); hideAlert(apiAlert); balanceDisplay.classList.add('hidden'); };
+    // 查询余额
+    async function fetchBalance() {
+        if (!apiKey) return;
+        try {
+            const resp = await fetch(KEY_CHECK_URL, { headers: { 'Authorization': 'Bearer ' + apiKey } });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            // 尝试从各种可能的字段中提取余额
+            const credit = data.credit ?? data.api_credit ?? data.balance ?? data.credits ?? data.amount ?? data.total;
+            const freeCredit = data.free_credit ?? data.free_credits ?? data.free_balance;
+            let text = '💰 余额：';
+            if (credit !== undefined) {
+                text += credit.toLocaleString();
+                if (freeCredit !== undefined) text += '（含免费 ' + freeCredit.toLocaleString() + '）';
+            } else {
+                // 如果没有明确的余额字段，显示原始数据的关键字段
+                const parts = [];
+                for (const k of Object.keys(data)) {
+                    if (typeof data[k] === 'number') parts.push(k + ': ' + data[k].toLocaleString());
+                }
+                if (parts.length > 0) text += parts.join(' | ');
+                else text = '💰 账户状态正常';
+            }
+            balanceDisplay.textContent = text;
+            balanceDisplay.classList.remove('hidden');
+        } catch(e) {}
+    }
+    // 硅基流动 Key
+    testBtn.onclick = () => {
+        const key = apiKey || apiKeyInput.value.trim();
+        if (!key) { showAlert(apiAlert, '请先输入 API Key', 'warn'); return; }
+        apiKey = key; apiKeyInput.value = key; updateApiStatus();
+        testBtn.disabled = true; testBtn.textContent = '测试中…'; hideAlert(apiAlert);
+        fetch(KEY_CHECK_URL, { headers: { 'Authorization': 'Bearer ' + key } })
+            .then(r => {
+                if (r.ok) {
+                    showAlert(apiAlert, '✅ 连接成功', 'ok');
+                    fetchBalance(); // 测试成功后自动查询余额
+                }
+                else if (r.status === 401) showAlert(apiAlert, '❌ API Key 无效', 'err');
+                else showAlert(apiAlert, '❌ 请求失败（HTTP ' + r.status + '）', 'err');
+            })
+            .catch(() => showAlert(apiAlert, '❌ 网络连接失败', 'err'))
+            .finally(() => { testBtn.disabled = false; testBtn.textContent = '🔌 测试'; });
+    };
+
+    // 声音 ID
+    function updateRefStatus() { refStatus.innerHTML = refId ? '<span class="dot ok"></span><span>已保存</span>' : '<span class="dot off"></span><span>未配置</span>'; }
+    function loadRefId() { try { const s = localStorage.getItem(REF_ID_KEY); if (s) { refId = s; refIdInput.value = s; } } catch(e) {} }
+    function saveRefId() { try { if (refId) localStorage.setItem(REF_ID_KEY, refId); else localStorage.removeItem(REF_ID_KEY); } catch(e) {} }
+    function getFavs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { return []; } }
+    function saveFavs(favs) { try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e) {} }
+    function renderFavs() {
+        const favs = getFavs();
+        if (favs.length === 0) {
+            favModalList.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:0.85rem;padding:20px 0;">暂无收藏，点击下方按钮添加</div>';
+            return;
+        }
+        favModalList.innerHTML = '';
+        favs.forEach((fav, idx) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:10px;background:var(--input);border-radius:8px;';
+            item.innerHTML = '<div style="flex:1;min-width:0;"><div style="font-weight:500;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + fav.name + '</div><div style="font-size:0.7rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + fav.id.substring(0, 20) + '…</div></div><button class="btn btn-primary btn-sm fav-use" data-idx="' + idx + '">使用</button><button class="btn btn-danger btn-sm fav-del" data-idx="' + idx + '">✕</button>';
+            favModalList.appendChild(item);
+        });
+        favModalList.querySelectorAll('.fav-use').forEach(b => b.onclick = () => {
+            const fav = getFavs()[parseInt(b.dataset.idx)];
+            refId = fav.id; refIdInput.value = fav.id; saveRefId(); updateRefStatus();
+            favModal.classList.add('hidden');
+            showAlert(apiAlert, '✅ 已切换到「' + fav.name + '」', 'ok');
+            sfxSave();
+            setTimeout(() => hideAlert(apiAlert), 1500);
+        });
+        favModalList.querySelectorAll('.fav-del').forEach(b => b.onclick = () => {
+            const favs = getFavs();
+            favs.splice(parseInt(b.dataset.idx), 1);
+            saveFavs(favs);
+            renderFavs();
+        });
+    }
+    favBtn.onclick = () => { renderFavs(); favModal.classList.remove('hidden'); };
+    favModalClose.onclick = () => favModal.classList.add('hidden');
+    favModal.onclick = e => { if (e.target === favModal) favModal.classList.add('hidden'); };
+    favAddCurrent.onclick = () => {
+        const id = refIdInput.value.trim();
+        if (!id) { showAlert(apiAlert, '请先输入声音 ID', 'warn'); return; }
+        favNameInput.value = '我的声音 ' + (getFavs().length + 1);
+        favAddArea.classList.remove('hidden');
+        favAddCurrent.classList.add('hidden');
+        favNameInput.focus();
+    };
+    favCancelBtn.onclick = () => {
+        favAddArea.classList.add('hidden');
+        favAddCurrent.classList.remove('hidden');
+    };
+    favSaveBtn.onclick = () => {
+        const id = refIdInput.value.trim();
+        const name = favNameInput.value.trim();
+        if (!name) { showAlert(apiAlert, '请输入声音名称', 'warn'); return; }
+        const favs = getFavs();
+        favs.push({ id, name: name.substring(0, 20) });
+        saveFavs(favs);
+        renderFavs();
+        favAddArea.classList.add('hidden');
+        favAddCurrent.classList.remove('hidden');
+        showAlert(apiAlert, '✅ 已收藏「' + name + '」', 'ok');
+        sfxSave();
+        setTimeout(() => hideAlert(apiAlert), 1500);
+    };
+    saveRefBtn.onclick = () => {
+        const id = refIdInput.value.trim();
+        if (!id) { showAlert(apiAlert, '请输入声音 ID', 'warn'); return; }
+        refId = id; saveRefId(); updateRefStatus();
+        showAlert(apiAlert, '✅ 已保存', 'ok');
+        sfxSave();
+        setTimeout(() => hideAlert(apiAlert), 1500);
+    };
+    clearRefBtn.onclick = () => { refId = ''; refIdInput.value = ''; saveRefId(); updateRefStatus(); };
+
+    // Tab
+    tabs.forEach(t => t.onclick = () => {
+        tabs.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        activeTab = t.dataset.tab;
+        tabRefid.classList.toggle('hidden', activeTab !== 'refid');
+        tabZeroshot.classList.toggle('hidden', activeTab !== 'zeroshot');
+        if (activeTab === 'zeroshot') { voiceReady = false; voiceReadyStatus.classList.add('hidden'); }
+    });
+
+    // 文件上传
+    uploadArea.onclick = () => audioFile.click();
+    audioFile.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['mp3','wav','m4a','ogg','aac'].includes(ext)) { showAlert(genAlert, '❌ 请选择 MP3/WAV/M4A 格式', 'err'); return; }
+        selectedFile = file;
+        if (selectedFileUrl) URL.revokeObjectURL(selectedFileUrl);
+        selectedFileUrl = URL.createObjectURL(file);
+        fileInfo.classList.remove('hidden');
+        fileInfo.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'file-info';
+        div.innerHTML = '<div class="name">' + file.name + '</div><div class="meta">' + (file.size/1024/1024).toFixed(2) + ' MB</div>';
+        const audio = document.createElement('audio');
+        audio.controls = true; audio.src = selectedFileUrl; audio.style.cssText = 'width:100%;margin-top:8px;height:36px;';
+        audio.onloadedmetadata = () => { div.querySelector('.meta').textContent += ' · ' + fmtTime(audio.duration); };
+        div.appendChild(audio);
+        fileInfo.appendChild(div);
+        refTextWrap.classList.remove('hidden');
+        voiceReady = false;
+        voiceReadyStatus.classList.add('hidden');
+    };
+
+    // 确认使用此声音
+    confirmVoiceBtn.onclick = () => {
+        if (!selectedFile) { showAlert(voiceReadyStatus, '❌ 请先上传音频文件', 'err'); voiceReadyStatus.classList.remove('hidden'); return; }
+        if (!refText.value.trim()) { showAlert(voiceReadyStatus, '❌ 请填写参考音频中的文字', 'err'); voiceReadyStatus.classList.remove('hidden'); return; }
+        voiceReady = true;
+        showAlert(voiceReadyStatus, '✅ 声音已就绪！现在可以输入文字并点击「生成语音」了', 'ok');
+        voiceReadyStatus.classList.remove('hidden');
+    };
+
+    // 创建声音ID（上传音频到Fish账号，返回永久voice_id）
+    createVoiceIdBtn.onclick = async () => {
+        if (!selectedFile) { showAlert(createVoiceStatus, '❌ 请先上传音频文件', 'err'); createVoiceStatus.classList.remove('hidden'); return; }
+        if (!apiKey) { showAlert(createVoiceStatus, '❌ 请先填写 API Key', 'err'); createVoiceStatus.classList.remove('hidden'); return; }
+        createVoiceIdBtn.disabled = true;
+        createVoiceIdBtn.textContent = '⏳ 创建中…';
+        createVoiceStatus.classList.remove('hidden');
+        showAlert(createVoiceStatus, '⏳ 正在上传音频并创建声音模型，请稍候…', 'warn');
+        try {
+            const formData = new FormData();
+            formData.append('title', selectedFile.name.replace(/\.[^.]+$/, '') || '我的克隆声音');
+            formData.append('visibility', 'private');
+            formData.append('type', 'tts');
+            formData.append('train_mode', 'fast');
+            formData.append('enhance_audio_quality', 'true');
+            if (refText.value.trim()) formData.append('texts', JSON.stringify([refText.value.trim()]));
+            formData.append('voices', selectedFile);
+            const resp = await fetch('/api/fish/model', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + apiKey },
+                body: formData
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                const errMsg = data.message || data.error || data.detail || data.msg || ('HTTP ' + resp.status);
+                showAlert(createVoiceStatus, '❌ 创建失败：' + errMsg, 'err');
+                return;
+            }
+            const voiceId = data.id || data._id || data.voiceId || data.model_id;
+            if (!voiceId) {
+                showAlert(createVoiceStatus, '❌ 创建失败：未返回声音ID，响应：' + JSON.stringify(data).substring(0, 200), 'err');
+                return;
+            }
+            // 自动填入声音ID
+            refIdInput.value = voiceId;
+            localStorage.setItem('fish_ref_id', voiceId);
+            updateRefStatus();
+            showAlert(createVoiceStatus, '✅ 创建成功！声音ID：' + voiceId + '，已自动填入并切换到声音ID模式', 'ok');
+            // 自动切换到声音ID标签
+            tabs.forEach(x => x.classList.remove('active'));
+            document.querySelector('.tab[data-tab="refid"]').classList.add('active');
+            activeTab = 'refid';
+            tabRefid.classList.remove('hidden');
+            tabZeroshot.classList.add('hidden');
+            voiceReady = false;
+        } catch(e) {
+            showAlert(createVoiceStatus, '❌ 网络错误：' + e.message, 'err');
+        } finally {
+            createVoiceIdBtn.disabled = false;
+            createVoiceIdBtn.textContent = '🎙️ 创建声音ID';
+        }
+    };
+
+
+    // 文本
+    textInput.oninput = updateCharCount;
+    clearTextBtn.onclick = () => { textInput.value = ''; updateCharCount(); };
+    uploadTxtBtn.onclick = () => txtFile.click();
+    txtFile.onchange = e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { textInput.value = ev.target.result; updateCharCount(); };
+        reader.readAsText(file, 'UTF-8');
+        txtFile.value = '';
+    };
+
+    // 语速
+    speedBtns.forEach(b => b.onclick = () => {
+        speedBtns.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        speed = parseFloat(b.dataset.speed);
+    });
+    // 高级设置折叠
+    advToggle.onclick = () => advPanel.classList.toggle('hidden');
+    // 表现力 temperature
+    tempBtns.forEach(b => b.onclick = () => {
+        tempBtns.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        temperature = parseFloat(b.dataset.temp);
+    });
+    // 音质模式 latency
+    latBtns.forEach(b => b.onclick = () => {
+        latBtns.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        latency = b.dataset.lat;
+    });
+    // 情绪标签：点击插入到光标位置，并播放对应音效
+    const emotionBtns = document.querySelectorAll('.emotion-btn');
+    emotionBtns.forEach(b => b.onclick = () => {
+        const tag = b.dataset.emotion + ' ';
+        const start = textInput.selectionStart || textInput.value.length;
+        const end = textInput.selectionEnd || textInput.value.length;
+        textInput.value = textInput.value.substring(0, start) + tag + textInput.value.substring(end);
+        const newPos = start + tag.length;
+        textInput.setSelectionRange(newPos, newPos);
+        textInput.focus();
+        updateCharCount();
+        // 播放对应情绪音效
+        const emotion = b.dataset.emotion.replace(/[\[\]]/g, '');
+        playSound(emotion + '.mp3', 0.7);
+    });
+
+    // TTS
+    // 中文文本预处理：数字、符号、标点优化，提升自然度
+    function preprocessText(text) {
+        if (!text) return '';
+        let t = text;
+        // 统一换行
+        t = t.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        // 清理多余空白
+        t = t.replace(/[ \t]+/g, ' ');
+        t = t.replace(/\n{3,}/g, '\n\n');
+        // 清理行首尾空格
+        t = t.split('\n').map(l => l.trim()).join('\n');
+        // 连续标点合并
+        t = t.replace(/。{2,}/g, '。');
+        t = t.replace(/！{2,}/g, '！');
+        t = t.replace(/？{2,}/g, '？');
+        t = t.replace(/，{2,}/g, '，');
+        // 省略号统一
+        t = t.replace(/\.{3,}/g, '…');
+        // 百分比：50% → 百分之五十
+        t = t.replace(/(\d+(?:\.\d+)?)\s*%/g, (_, n) => '百分之' + numberToChinese(n));
+        // 温度：37℃ → 三十七度
+        t = t.replace(/(\d+(?:\.\d+)?)\s*℃/g, (_, n) => numberToChinese(n) + '度');
+        // 简单的阿拉伯数字转中文（只处理独立的短数字，避免破坏英文/编号）
+        t = t.replace(/(?<![A-Za-z0-9.])(\d{1,4})(?![A-Za-z0-9.])/g, (_, n) => numberToChinese(n));
+        // 句末加标点，避免最后一句没有停顿
+        t = t.trim();
+        if (t && !/[。！？…；\n]$/.test(t)) {
+            t += '。';
+        }
+        return t;
+    }
+    // 阿拉伯数字转中文（简单版，0-9999）
+    function numberToChinese(num) {
+        const n = parseFloat(num);
+        if (isNaN(n)) return num;
+        if (n >= 10000) return num; // 大数不转，避免出错
+        const digits = ['零','一','二','三','四','五','六','七','八','九'];
+        const units = ['','十','百','千'];
+        const str = String(Math.floor(n));
+        const len = str.length;
+        let result = '';
+        let zeroFlag = false;
+        for (let i = 0; i < len; i++) {
+            const d = parseInt(str[i]);
+            const u = len - 1 - i;
+            if (d === 0) {
+                zeroFlag = true;
+            } else {
+                if (zeroFlag) { result += '零'; zeroFlag = false; }
+                result += digits[d] + units[u];
+            }
+        }
+        // 处理"十"开头（10-19）
+        if (len === 2 && str[0] === '1') result = '十' + result.substring(1);
+        // 小数部分
+        if (String(n).includes('.')) {
+            const dec = String(n).split('.')[1];
+            result += '点';
+            for (const c of dec) result += digits[parseInt(c)];
+        }
+        return result || num;
+    }
+    function splitText(text, max) {
+        const chunks = [];
+        let rest = text;
+        // 优先按句号、问号、感叹号、分号、换行切分（完整句子）
+        const strongPuncts = ['。','！','？','；','\n','.','!','?'];
+        // 其次按逗号、顿号切分
+        const weakPuncts = ['，',',','、','：',':'];
+        while (rest.length > max) {
+            let pos = -1;
+            // 在前 max 字符内找最后一个强标点
+            for (let i = Math.min(max, rest.length - 1); i > max * 0.5; i--) {
+                if (strongPuncts.includes(rest[i])) { pos = i + 1; break; }
+            }
+            // 找不到强标点，找弱标点
+            if (pos === -1) {
+                for (let i = Math.min(max, rest.length - 1); i > max * 0.4; i--) {
+                    if (weakPuncts.includes(rest[i])) { pos = i + 1; break; }
+                }
+            }
+            // 还是找不到，硬切
+            if (pos === -1) pos = max;
+            const piece = rest.substring(0, pos).trim();
+            if (piece) chunks.push(piece);
+            rest = rest.substring(pos).trimStart();
+        }
+        if (rest) chunks.push(rest.trim());
+        return chunks;
+    }
+
+    function callTTS(text, rid, spd, zeroAudio, zeroText) {
+        if (zeroAudio) {
+            const body = { text, references: [{ audio: zeroAudio, text: zeroText || '' }], model: MODEL, format: FORMAT };
+            if (spd && spd !== 1.0) body.speed = spd;
+            if (temperature !== undefined) body.temperature = temperature;
+            if (latency) body.latency = latency;
+            body.normalize_loudness = true;
+            return fetch(TTS_URL, { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/msgpack' }, body: msgpackEncode(body) });
+        }
+        const body = { text, reference_id: rid, model: MODEL, format: FORMAT };
+        if (spd && spd !== 1.0) body.speed = spd;
+        if (temperature !== undefined) body.temperature = temperature;
+        if (latency) body.latency = latency;
+        body.normalize_loudness = true;
+        return fetch(TTS_URL, { method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    }
+
+    function handleErr(r, container) {
+        if (r.status === 401) showAlert(container, '❌ API Key 无效', 'err');
+        else if (r.status === 403) showAlert(container, '❌ 没有权限', 'err');
+        else if (r.status === 429) showAlert(container, '❌ 请求过于频繁', 'err');
+        else if (r.status === 400) showAlert(container, '❌ 参数错误，请检查声音ID或参考文字', 'err');
+        else showAlert(container, '❌ 请求失败（HTTP ' + r.status + '）', 'err');
+    }
+
+    function buildPlayer(blob, container) {
+        const url = URL.createObjectURL(blob);
+        container.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'player';
+        div.innerHTML = '<div class="controls"><button class="play-btn">▶</button><div class="progress"><input type="range" min="0" max="100" value="0" step="0.1"><span class="time">0:00 / 0:00</span></div></div>';
+        container.appendChild(div);
+        const audio = new Audio(url);
+        const playBtn = div.querySelector('.play-btn');
+        const slider = div.querySelector('input[type="range"]');
+        const timeEl = div.querySelector('.time');
+        playBtn.onclick = () => {
+            if (audio.paused) { audio.play().catch(()=>{}); playBtn.textContent = '⏸'; }
+            else { audio.pause(); playBtn.textContent = '▶'; }
+        };
+        audio.onplay = () => playBtn.textContent = '⏸';
+        audio.onpause = () => playBtn.textContent = '▶';
+        audio.onended = () => playBtn.textContent = '▶';
+        audio.onloadedmetadata = () => { timeEl.textContent = '0:00 / ' + fmtTime(audio.duration); };
+        audio.ontimeupdate = () => { if (audio.duration) { slider.value = (audio.currentTime / audio.duration) * 100; timeEl.textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(audio.duration); } };
+        slider.oninput = () => { if (audio.duration) audio.currentTime = (slider.value / 100) * audio.duration; };
+        return audio;
+    }
+
+    // 生成
+    genBtn.onclick = async () => {
+        if (isGenerating) return;
+        const useZero = engine === 'fish' && activeTab === 'zeroshot';
+        let zeroAudioBytes = null;
+        const key = apiKey || apiKeyInput.value.trim();
+        if (!key) { showAlert(genAlert, '⚠️ 请先输入 API Key', 'warn'); return; }
+        apiKey = key; apiKeyInput.value = key; updateApiStatus();
+        if (useZero) {
+            if (!selectedFile) { showAlert(genAlert, '⚠️ 请先上传参考音频', 'warn'); return; }
+            if (!refText.value.trim()) { showAlert(genAlert, '⚠️ 请填写参考音频中的文字', 'warn'); return; }
+            if (!voiceReady) { showAlert(genAlert, '⚠️ 请先点击「确认使用此声音」按钮', 'warn'); return; }
+            try { zeroAudioBytes = new Uint8Array(await selectedFile.arrayBuffer()); }
+            catch(e) { showAlert(genAlert, '❌ 读取音频失败：' + e.message, 'err'); return; }
+        } else {
+            const rid = refId || refIdInput.value.trim();
+            if (!rid) { showAlert(genAlert, '⚠️ 请输入声音 ID，或切换到上传参考音频', 'warn'); return; }
+            refId = rid;
+        }
+
+        const rawText = textInput.value.trim();
+        if (!rawText) { showAlert(genAlert, '⚠️ 请输入朗读文字', 'warn'); return; }
+        // 文本预处理：数字、符号、标点优化，提升自然度
+        const text = preprocessText(rawText);
+
+        isGenerating = true;
+        genBtn.disabled = true; genBtn.textContent = '⏳ 生成中…';
+        hideAlert(genAlert); resultCard.classList.add('hidden'); playerWrap.innerHTML = '';
+        playCustomGenSound();
+        if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+        // 分段长度调整为1500，减少长文本后半段音色漂移
+        const chunks = splitText(text, 1500);
+        const total = chunks.length;
+        let done = 0;
+        const blobs = [];
+        genStatus.classList.remove('hidden');
+        genStatus.innerHTML = '<span class="spinner"></span>生成中 0 / ' + total;
+
+        const CONCURRENT = 2;
+        let idx = 0;
+        function worker() {
+            if (idx >= chunks.length) return Promise.resolve();
+            const i = idx++;
+            return callTTS(chunks[i], useZero ? null : refId, speed, useZero ? zeroAudioBytes : null, useZero ? refText.value.trim() : null)
+                .then(r => { if (!r.ok) { handleErr(r, genAlert); throw new Error('err ' + r.status); } return r.blob(); })
+                .then(b => { if (!b || b.size === 0) throw new Error('empty'); blobs[i] = b; done++; genStatus.innerHTML = '<span class="spinner"></span>生成中 ' + done + ' / ' + total; return worker(); })
+                .catch(e => { if (!String(e.message).includes('err ') && !String(e.message).includes('empty')) { showAlert(genAlert, '❌ 网络连接失败', 'err'); sfxError(); stopCustomGenSound(); } throw e; });
+        }
+        const workers = [];
+        for (let w = 0; w < Math.min(CONCURRENT, chunks.length); w++) workers.push(worker());
+
+        try {
+            await Promise.all(workers);
+            const valid = blobs.filter(b => b);
+            if (valid.length === 0) { showAlert(genAlert, '❌ 生成失败', 'err'); sfxError(); stopCustomGenSound(); return; }
+            const combined = valid.length === 1 ? valid[0] : new Blob(valid, { type: 'audio/mpeg' });
+            currentBlob = combined;
+            currentAudio = buildPlayer(combined, playerWrap);
+            resultCard.classList.remove('hidden');
+            showAlert(genAlert, '✅ 生成完成', 'ok');
+            sfxSuccess();
+            stopCustomGenSound();
+            try {
+                const buf = await combined.arrayBuffer();
+                await dbAdd({
+                    text: text.substring(0, 50) + (text.length > 50 ? '…' : ''),
+                    fullText: text,
+                    time: nowStr(),
+                    timestamp: Date.now(),
+                    engine: engine,
+                    voice: (useZero ? '零样本' : (refId ? refId.substring(0, 12) + '…' : '')),
+                    audio: new Blob([buf], { type: 'audio/mpeg' }),
+                    speed: speed
+                });
+                renderRecords();
+            } catch(e) { console.warn('保存记录失败', e); }
+        } catch(e) {
+            // 已处理
+        } finally {
+            isGenerating = false;
+            genBtn.disabled = false; genBtn.textContent = '🎙️ 生成语音';
+            genStatus.classList.add('hidden');
+        }
+    };
+
+    regenBtn.onclick = () => genBtn.click();
+
+    // 统一 MP3 保存：iOS App 中通过原生桥接保存到文件，网页版走浏览器下载
+    async function saveBlobAsMP3(blob, filename) {
+        if (isIOSApp && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.saveMP3) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1];
+                window.webkit.messageHandlers.saveMP3.postMessage({ data: base64, filename: filename });
+            };
+            reader.readAsDataURL(blob);
+            return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    downloadBtn.onclick = () => {
+        if (!currentBlob) return;
+        saveBlobAsMP3(currentBlob, 'voice_' + Date.now() + '.mp3');
+        if (!isIOSApp) {
+            showAlert(dlNote, '💡 如未自动下载，请长按播放器选择"存储视频"', 'info');
+            dlNote.classList.remove('hidden');
+            setTimeout(() => dlNote.classList.add('hidden'), 6000);
+        }
+    };
+
+    // 最近记录
+    async function renderRecords() {
+        const records = await dbGetAll();
+        records.sort((a, b) => b.timestamp - a.timestamp);
+        if (records.length === 0) { recordsList.innerHTML = '<div class="empty">暂无生成记录</div>'; return; }
+        recordsList.innerHTML = '';
+        records.forEach(rec => {
+            const item = document.createElement('div');
+            item.className = 'record-item';
+            item.innerHTML = '<div class="time">' + rec.time + ' · ' + (rec.voice || '') + '</div>' +
+                '<div class="txt">' + rec.text + '</div>' +
+                '<div class="actions">' +
+                '<button class="btn btn-secondary btn-sm rec-play">▶ 播放</button>' +
+                '<button class="btn btn-primary btn-sm rec-dl">💾 下载</button>' +
+                '<button class="btn btn-danger btn-sm rec-del">✕</button>' +
+                '</div>';
+            const playBtn = item.querySelector('.rec-play');
+            const dlBtn = item.querySelector('.rec-dl');
+            const delBtn = item.querySelector('.rec-del');
+            let recAudio = null;
+            playBtn.onclick = () => {
+                if (recAudio && !recAudio.paused) { recAudio.pause(); playBtn.textContent = '▶ 播放'; return; }
+                if (!recAudio) { recAudio = new Audio(URL.createObjectURL(rec.audio)); recAudio.onended = () => playBtn.textContent = '▶ 播放'; }
+                document.querySelectorAll('.rec-play').forEach(b => { if (b !== playBtn) b.textContent = '▶ 播放'; });
+                recAudio.play().catch(()=>{});
+                playBtn.textContent = '⏸ 暂停';
+            };
+            dlBtn.onclick = () => {
+                saveBlobAsMP3(rec.audio, 'voice_' + rec.timestamp + '.mp3');
+            };
+            delBtn.onclick = async () => { await dbDelete(rec.id); renderRecords(); };
+            recordsList.appendChild(item);
+        });
+    }
+
+    clearRecordsBtn.onclick = async () => { await dbClear(); renderRecords(); };
+
+    async function init() {
+        try { await openDB(); } catch(e) { console.warn('IndexedDB 不可用', e); }
+        applyEngine();
+        loadRefId();
+        updateApiStatus();
+        updateRefStatus();
+        updateCharCount();
+        renderFavs();
+        renderRecords();
+        if (apiKey) fetchBalance(); // 已有Key时自动查询余额
+    }
+    init();
+})();
+</script>
+</body>
+</html>

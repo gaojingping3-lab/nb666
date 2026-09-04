@@ -1,0 +1,154 @@
+name: 构建 iOS App (AI声音朗读器)
+
+on:
+  push:
+    branches: [ "主要的", "main", "master" ]
+    paths:
+      - 'ios/**'
+      - 'project.yml'
+      - '.github/workflows/**'
+      - 'public/**'
+  workflow_dispatch:
+
+env:
+  APP_NAME: AI声音朗读器
+  BUNDLE_ID: com.gaojingping.voicereader
+  XCODEGEN_VERSION: 2.38.0
+
+jobs:
+  build-ios:
+    name: 构建 iOS IPA
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 显示 Xcode 版本
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-version
+
+      - name: 安装 XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen --version
+
+      - name: 生成 Xcode 工程
+        run: |
+          xcodegen generate
+          ls -la *.xcodeproj
+
+      - name: 解析 Swift Package 依赖
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project "AI声音朗读器.xcodeproj" \
+            -scheme "AI声音朗读器"
+        timeout-minutes: 15
+
+      - name: 构建 Release (arm64, 无签名)
+        run: |
+          xcodebuild \
+            -project "AI声音朗读器.xcodeproj" \
+            -scheme "AI声音朗读器" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS=arm64 \
+            build
+        timeout-minutes: 30
+
+      - name: 验证 .app 产物
+        run: |
+          APP_PATH="build/Build/Products/Release-iphoneos/${{ env.APP_NAME }}.app"
+          if [ -d "$APP_PATH" ]; then
+            echo "✅ .app 构建成功"
+            ls -la "$APP_PATH"
+            echo ""
+            echo "=== 包内容 ==="
+            ls -la "$APP_PATH/"
+            echo ""
+            echo "=== web 资源 ==="
+            ls -la "$APP_PATH/web/" 2>/dev/null || echo "web 目录未找到"
+            echo ""
+            echo "=== 二进制架构 ==="
+            lipo -info "$APP_PATH/${{ env.APP_NAME }}" 2>/dev/null || file "$APP_PATH/${{ env.APP_NAME }}"
+          else
+            echo "❌ .app 未找到"
+            find build -name "*.app" -type d 2>/dev/null
+            exit 1
+          fi
+
+      - name: 打包未签名 IPA (TrollStore 可安装)
+        run: |
+          APP_PATH="build/Build/Products/Release-iphoneos/${{ env.APP_NAME }}.app"
+          PAYLOAD_DIR="ipa/Payload"
+          mkdir -p "$PAYLOAD_DIR"
+          cp -R "$APP_PATH" "$PAYLOAD_DIR/"
+
+          # 写入 iTunesMetadata.plist（可选，改善安装体验）
+          cat > ipa/iTunesMetadata.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>bundleDisplayName</key>
+              <string>AI声音朗读器</string>
+              <key>bundleShortVersionString</key>
+              <string>1.0.0</string>
+              <key>bundleVersion</key>
+              <string>1</string>
+              <key>itemName</key>
+              <string>AI声音朗读器</string>
+              <key>softwareVersionBundleId</key>
+              <string>com.gaojingping.voicereader</string>
+          </dict>
+          </plist>
+          EOF
+
+          cd ipa
+          zip -qr "../AI声音朗读器_未签名.ipa" Payload iTunesMetadata.plist
+          cd ..
+
+          echo "✅ IPA 打包完成"
+          ls -lh "AI声音朗读器_未签名.ipa"
+
+      - name: 上传 IPA 构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI声音朗读器-iOS-IPA
+          path: AI声音朗读器_未签名.ipa
+          retention-days: 30
+
+      - name: 上传 .app 调试产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI声音朗读器-iOS-APP
+          path: build/Build/Products/Release-iphoneos/
+          retention-days: 7
+
+      - name: 构建总结
+        run: |
+          echo "## 构建完成 ✅"
+          echo ""
+          echo "- App 名称: AI声音朗读器"
+          echo "- Bundle ID: com.gaojingping.voicereader"
+          echo "- 版本: 1.0.0 (1)"
+          echo "- 架构: arm64"
+          echo "- 签名: 未签名（TrollStore 可直接安装）"
+          echo ""
+          echo "### 安装方式"
+          echo "1. 下载 Artifact 中的 IPA 文件"
+          echo "2. 用 TrollStore 安装（永久签名，不掉签）"
+          echo "3. 或用 Sideloadly / AltStore 侧载（7天掉签）"
+          echo ""
+          echo "### 注意"
+          echo "- 本 IPA 未签名，不能直接通过 App Store 或 TestFlight 安装"
+          echo "- 如需签名 IPA，需要在 GitHub Secrets 中配置苹果开发者证书和描述文件"

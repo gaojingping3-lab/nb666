@@ -1,0 +1,79 @@
+name: AI声音朗读器
+options:
+  bundleIdPrefix: com.gaojingping
+  deploymentTarget:
+    iOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  developmentLanguage: zh-Hans
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_BITCODE: "NO"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_ALLOWED: "YES"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGN_IDENTITY: "iPhone Developer"
+    DEVELOPMENT_TEAM: ""
+    PRODUCT_BUNDLE_IDENTIFIER: com.gaojingping.voicereader
+    PRODUCT_NAME: AI声音朗读器
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    INFOPLIST_FILE: ios/App/Info.plist
+    INFOPLIST_KEY_CFBundleDisplayName: AI声音朗读器
+    INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "NO"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    SWIFT_OBJC_BRIDGING_HEADER: ""
+    ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: "YES"
+    VALID_ARCHS: "arm64 arm64e"
+    ARCHS: "arm64"
+    EXCLUDED_ARCHS: "i386 x86_64"
+    ONLY_ACTIVE_ARCH: "NO"
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+    ENABLE_TESTABILITY: "NO"
+    GCC_OPTIMIZATION_LEVEL: "s"
+    SWIFT_OPTIMIZATION_LEVEL: "-Osize"
+    STRIP_INSTALLED_PRODUCT: "YES"
+    DEAD_CODE_STRIPPING: "YES"
+
+targets:
+  AI声音朗读器:
+    type: application
+    platform: iOS
+    sources:
+      - path: ios/App
+      - path: ios/Assets.xcassets
+      - path: ios/web
+        type: folder
+        optional: false
+    resources:
+      - path: ios/Assets.xcassets
+      - path: ios/web
+        type: folder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gaojingping.voicereader
+        PRODUCT_NAME: AI声音朗读器
+        INFOPLIST_FILE: ios/App/Info.plist
+    dependencies:
+      - package: GCDWebServer
+
+packages:
+  GCDWebServer:
+    url: https://github.com/swisspol/GCDWebServer.git
+    from: 3.5.5
+
+scheme:
+  AI声音朗读器:
+    build:
+      targets:
+        AI声音朗读器: all
+    run:
+      config: Release
+    archive:
+      config: Release
