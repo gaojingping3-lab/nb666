@@ -6,6 +6,8 @@ options:
   createIntermediateGroups: true
   generateEmptyDirectories: true
   developmentLanguage: zh-Hans
+  xcodeVersion: "15.0"
+  projectFormat: Xcode 14.0
 
 settings:
   base:
